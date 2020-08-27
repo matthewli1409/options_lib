@@ -5,13 +5,14 @@ import numpy as np
 from scipy.stats import norm
 
 
-def black_price(spot_px, strike_px, rf_rate, ttm, vol, opt_type):
+def black_price(spot_px, strike_px, rf_rate, div_yield, ttm, vol, opt_type):
     """Black Scholes Option Price
 
     Args:
         spot_px (float): spot price
         strike_px (float): strike price
         rf_rate (float): risk-free rate
+        div_yield (float): dividend yield rate
         ttm (float): time to maturity in years
         vol (float): volatility
         opt_type (str): 'call' or 'put'
@@ -23,22 +24,23 @@ def black_price(spot_px, strike_px, rf_rate, ttm, vol, opt_type):
         return 0
 
     d1 = (np.log(spot_px / strike_px) + ttm *
-          (0.5 * math.pow(vol, 2))) / (vol * math.sqrt(ttm))
+          (0.5 * math.pow(vol, 2) + rf_rate - div_yield)) / (vol * math.sqrt(ttm))
     d2 = d1 - vol * math.sqrt(ttm)
 
     if opt_type == 'call':
-        return math.exp(-rf_rate * ttm) * (spot_px * norm.cdf(d1) - strike_px * norm.cdf(d2))
+        return (math.exp(-div_yield * ttm) * spot_px * norm.cdf(d1)) - (math.exp(-rf_rate * ttm) * strike_px * norm.cdf(d2))
     elif opt_type == 'put':
-        return math.exp(-rf_rate * ttm) * (strike_px * norm.cdf(-d2) - spot_px * norm.cdf(-d1))
+        return (math.exp(-rf_rate * ttm) * strike_px * norm.cdf(-d2)) - (math.exp(-div_yield * ttm) * spot_px * norm.cdf(-d1))
 
 
-def black_delta(spot_px, strike_px, rf_rate, ttm, vol, opt_type):
+def black_delta(spot_px, strike_px, rf_rate, div_yield, ttm, vol, opt_type):
     """Black Scholes Delta Model
 
     Args:
         spot_px (float): spot price
         strike_px (float): strike price
         rf_rate (float): risk-free rate
+        div_yield (float): dividend yield rate
         ttm (float): time to maturity in years
         vol (float): volatility
         opt_type (str): 'call' or 'put'
@@ -50,21 +52,22 @@ def black_delta(spot_px, strike_px, rf_rate, ttm, vol, opt_type):
         return 0
 
     d1 = (np.log(spot_px / strike_px) + ttm *
-          (0.5 * math.pow(vol, 2))) / (vol * math.sqrt(ttm))
+          (0.5 * math.pow(vol, 2) + rf_rate - div_yield)) / (vol * math.sqrt(ttm))
 
     if opt_type == 'call':
-        return math.exp(-rf_rate * ttm) * norm.cdf(d1)
+        return math.exp(-div_yield * ttm) * norm.cdf(d1)
     elif opt_type == 'put':
-        return math.exp(-rf_rate * ttm) * (norm.cdf(d1) - 1)
+        return -math.exp(-rf_rate * ttm) * (norm.cdf(-d1))
 
 
-def black_gamma(spot_px, strike_px, rf_rate, ttm, vol):
+def black_gamma(spot_px, strike_px, rf_rate, div_yield, ttm, vol):
     """Black Scholes Gamma Model
 
     Args:
         spot_px (float): spot price
         strike_px (float): strike price
         rf_rate (float): risk-free rate
+        div_yield (float): dividend yield rate
         ttm (float): time to maturity in years
         vol (float): volatility
 
@@ -75,17 +78,18 @@ def black_gamma(spot_px, strike_px, rf_rate, ttm, vol):
         return 0
 
     d1 = (np.log(spot_px / strike_px) + ttm *
-          (0.5 * math.pow(vol, 2))) / (vol * math.sqrt(ttm))
-    return math.exp(-rf_rate * ttm) * (norm.pdf(d1) / (spot_px * vol * math.sqrt(ttm)))
+          (0.5 * math.pow(vol, 2) + rf_rate - div_yield)) / (vol * math.sqrt(ttm))
+    return math.exp(-div_yield * ttm) * (norm.pdf(d1) / (spot_px * vol * math.sqrt(ttm)))
 
 
-def black_vega(spot_px, strike_px, rf_rate, ttm, vol):
+def black_vega(spot_px, strike_px, rf_rate, div_yield, ttm, vol):
     """Black Scholes Vega Model
 
     Args:
         spot_px (float): spot price
         strike_px (float): strike price
         rf_rate (float): risk-free rate
+        div_yield (float): dividend yield rate
         ttm (float): time to maturity in years
         vol (float): volatility
 
@@ -96,17 +100,18 @@ def black_vega(spot_px, strike_px, rf_rate, ttm, vol):
         return 0
 
     d1 = (np.log(spot_px / strike_px) + ttm *
-          (0.5 * math.pow(vol, 2))) / (vol * math.sqrt(ttm))
-    return (spot_px * math.exp(-rf_rate * ttm) * norm.pdf(d1) * math.sqrt(ttm)) / 100
+          (0.5 * math.pow(vol, 2) + rf_rate - div_yield)) / (vol * math.sqrt(ttm))
+    return (spot_px * math.exp(-div_yield * ttm) * norm.pdf(d1) * math.sqrt(ttm)) / 100
 
 
-def black_theta(spot_px, strike_px, rf_rate, ttm, vol, opt_type):
+def black_theta(spot_px, strike_px, rf_rate, div_yield, ttm, vol, opt_type):
     """Black Scholes Theta Model
 
     Args:
         spot_px (float): spot price
         strike_px (float): strike price
         rf_rate (float): risk-free rate
+        div_yield (float): dividend yield rate
         ttm (float): time to maturity in years
         vol (float): volatility
         opt_type (str): 'call' or 'put'
@@ -118,16 +123,16 @@ def black_theta(spot_px, strike_px, rf_rate, ttm, vol, opt_type):
         return 0
 
     d1 = (np.log(spot_px / strike_px) + ttm *
-          (0.5 * math.pow(vol, 2))) / (vol * math.sqrt(ttm))
+          (0.5 * math.pow(vol, 2) + rf_rate - div_yield)) / (vol * math.sqrt(ttm))
     d2 = d1 - vol * math.sqrt(ttm)
 
     if opt_type == 'call':
-        return abs(-spot_px * math.exp(-rf_rate * ttm) * norm.pdf(d1) * vol / (2 * math.sqrt(ttm)) + rf_rate * spot_px * math.exp(-rf_rate * ttm) * norm.cdf(d1) - rf_rate * strike_px * math.exp(-rf_rate * ttm) * norm.cdf(d2))/365
+        return (-spot_px * math.exp(-div_yield * ttm) * norm.pdf(d1) * vol / (2 * math.sqrt(ttm)) + (div_yield * spot_px * math.exp(-div_yield * ttm) * norm.cdf(d1)) - (rf_rate * strike_px * math.exp(-rf_rate * ttm) * norm.cdf(d2)))/365
     elif opt_type == 'put':
-        return abs(-spot_px * math.exp(-rf_rate * ttm) * norm.pdf(d1) * vol / (2 * math.sqrt(ttm)) - rf_rate * spot_px * math.exp(-rf_rate * ttm) * norm.cdf(d1) + rf_rate * strike_px * math.exp(-rf_rate * ttm) * norm.cdf(d2))/365
+        return (-spot_px * math.exp(-div_yield * ttm) * norm.pdf(-d1) * vol / (2 * math.sqrt(ttm)) - (div_yield * spot_px * math.exp(-div_yield * ttm) * norm.cdf(-d1)) + (rf_rate * strike_px * math.exp(-rf_rate * ttm) * norm.cdf(-d2)))/365
 
 
-def implied_vol(rf_rate, spot_px, strike_px, opt_price, ttm, opt_type):
+def implied_vol(spot_px, strike_px, rf_rate, div_yield, ttm, opt_type, opt_price):
     """Get implied volatility by interpolating till price is near the black price
 
     Notes:
@@ -137,50 +142,67 @@ def implied_vol(rf_rate, spot_px, strike_px, opt_price, ttm, opt_type):
         spot_px (float): spot price
         strike_px (float): strike price
         rf_rate (float): risk-free rate
+        div_yield (float): dividend yield rate
         ttm (float): time to maturity in years
-        vol (float): volatility
-        opt_type (str): 'call' or 'put'
+        opt_type (str): 'call' or 'put
+        opt_price (float): the price of the option
 
     Returns:
         (float): Black Scholes Theta
-
     """
     vol = 1
-    while (abs(black_price(spot_px, strike_px, rf_rate, ttm, vol, opt_type) - opt_price) > 1.0):
-        if black_price(spot_px, strike_px, rf_rate, ttm, vol, opt_type) > opt_price:
-            vol -= 0.01
+    k = 10000000000
+    while abs(black_price(spot_px, strike_px, rf_rate, div_yield, ttm, vol, opt_type) - opt_price) > 1.0:
+        if black_price(spot_px, strike_px, rf_rate, div_yield, ttm, vol, opt_type) > opt_price:
+            proceed = False
+            while not proceed:
+                new_potential_black_price = black_price(
+                    spot_px, strike_px, rf_rate, div_yield, ttm, vol - k, opt_type)
+                if new_potential_black_price < opt_price:
+                    # too big
+                    k = k / 10
+                else:
+                    proceed = True
+            vol -= k
         else:
-            vol += 0.01
+            proceed = False
+            while not proceed:
+                new_potential_black_price = black_price(
+                    spot_px, strike_px, rf_rate, div_yield, ttm, vol - k, opt_type)
+                if new_potential_black_price > opt_price:
+                    # too big
+                    k = k / 10
+                else:
+                    proceed = True
+            vol += k
     return vol
 
 
 if __name__ == '__main__':
 
-    # k = 95
-    # s = 100
-    # r = 0
-    # t = 30/365
-    # v = 0.25
+    strike = 95
+    underlying = 100
+    div_yield = 0.0
+    rf_rate = 0.0
+    ttm = 30/365
+    vol = 0.25
 
-    # black_price_c = black_price(k, s, r, t, v, 'call')
-    # black_price_p = black_price(k, s, r, t, v, 'put')
-    # black_delta_c = black_delta(k, s, r, t, v, 'call')
-    # black_delta_p = black_delta(k, s, r, t, v, 'put')
-    # black_gamma = black_gamma(k, s, r, t, v)
-    # black_vega = black_vega(k, s, r, t, v)
-    # black_theta_c = black_theta(k, s, r, t, v, 'call')
-    # black_theta_p = black_theta(k, s, r, t, v, 'put')
+    print(black_price(underlying, strike, rf_rate, div_yield, ttm, vol, 'call'))
+    print(black_price(underlying, strike, rf_rate, div_yield, ttm, vol, 'put'))
 
-    # print(f'call price: {black_price_c}')
-    # print(f'put price: {black_price_p}')
-    # print(f'call delta: {black_delta_c}')
-    # print(f'put delta: {black_delta_p}')
-    # print(f'gamma: {black_gamma}')
-    # print(f'vega {black_vega}')
-    # print(f'call theta: {black_theta_c}')
-    # print(f'put theta: {black_theta_p}')
+    print(black_delta(underlying, strike, rf_rate, div_yield, ttm, vol, 'call'))
+    print(black_delta(underlying, strike, rf_rate, div_yield, ttm, vol, 'put'))
 
-    t = 3/365
-    print(black_price(11600, 10000, 0, 3/365, 0.8, 'call'))
-    iv = implied_vol(0, 11600, 10000, 1767, t, 'call')
-    print(iv)
+    print(black_theta(underlying, strike, rf_rate, div_yield, ttm, vol, 'call'))
+    print(black_theta(underlying, strike, rf_rate, div_yield, ttm, vol, 'put'))
+
+    print(black_gamma(underlying, strike, rf_rate, div_yield, ttm, vol))
+    print(black_vega(underlying, strike, rf_rate, div_yield, ttm, vol))
+
+    strike = 10000
+    underlying = 11400
+    div_yield = 0
+    rf_rate = 0
+    ttm = 3/365
+
+    print(implied_vol(underlying, strike, rf_rate, div_yield, ttm, 'call', 1500))
